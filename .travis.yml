@@ -7,16 +7,21 @@ services:
   - mysql
  
 before_install:
-  - mysql -e "create database mer"
   - cd ./merApi
 
 install:
   - npm install
-  - npx sequelize-cli db:seed:all
+
+
+before_script:
+  - mysql -e "create database mer"
+  - mysql -uroot -e "grant all privileges on mer.* to 'user'@'%' identified by '123qwe'"
+  - npx sequelize-cli db:seed:all  
   
 script:
   - npm test
 
+after_success: npm run coverage
 
 # notifications:
 #  slack: projectosipt20182019:rARE6PX1hJuNVzPBseXumyHG
