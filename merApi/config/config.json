@@ -5,12 +5,12 @@
     "database": "mer",
     "host":"127.0.0.1",
     "dialect": "mysql",
-    "port":"3306"
+    "port":"4000"
   },
   "test": {
-    "username": "root",
-    "password": null,
-    "database": "database_test",
+    "username": "user",
+    "password": "123qwe",
+    "database": "mer",
     "host": "127.0.0.1",
     "dialect": "mysql"
   },
