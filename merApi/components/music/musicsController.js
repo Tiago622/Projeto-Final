@@ -1,9 +1,11 @@
 
 var musicsService = require('./musicsService');
-var fetchVideoInfo = require('youtube-info');
+// var fetchVideoInfo = require('youtube-info');
 const { check, validationResult } = require('express-validator/check');
 var jwt = require('jsonwebtoken');
 var amqp = require('amqplib/callback_api')
+
+const youtubedl = require('youtube-dl')
 
 const ytdl = require('ytdl-core');
 
@@ -15,33 +17,34 @@ exports.uploadVideo = async (req, res) => {
     //validar url
     req.check('urlInput', 'O URL deve seguir o seguinte formato: https://www.youtube.com/watch?v=idVideo').notEmpty().matches(/^(http(s)??\:\/\/)?(www\.)?(youtube\.com\/watch\?v=)([a-zA-Z0-9\-_]){11}/);
     //endereço do vídeo do youtube
-        //verificar erros 
-        var errors = req.validationErrors();
-        //se existir erros de validação
-        if (errors) {
-            serverResponse = { status: "Erros na validação", response: errors }
-            return res.send(serverResponse)
-        }
-        else {
-    
-    const url = req.body.urlInput + "";
-    //Returns a video ID from a YouTube URL.
-    const idVideo = ytdl.getURLVideoID(url);
-
-    //verificar se a música já existe na base de dados
-    await musicsService.getVideo(idVideo).then(mus => existsMusica = mus).catch(err => console.log(err));
-
-    if (existsMusica != null) {
-        serverResponse = { status: "URL já existe na base de dados", response: existsMusica }
+    //verificar erros 
+    var errors = req.validationErrors();
+    //se existir erros de validação
+    if (errors) {
+        serverResponse = { status: "Erros na validação", response: errors }
         return res.send(serverResponse)
     }
+    else {
+
+        const url = req.body.urlInput + "";
+        //Returns a video ID from a YouTube URL.
+        const idVideo = ytdl.getURLVideoID(url);
+
+        //verificar se a música já existe na base de dados
+        await musicsService.getVideo(idVideo).then(mus => existsMusica = mus).catch(err => console.log(err));
+
+        if (existsMusica != null) {
+            serverResponse = { status: "URL já existe na base de dados", response: existsMusica }
+            return res.send(serverResponse)
+        }
 
 
         if (url != null) {
             var nome;
             var dadosMusica = {};
-            fetchVideoInfo(idVideo, async function (err, videoInfo) {
+            await ytdl.getInfo(idVideo).then( async function (videoInfo, err) {
                 if (err) throw new Error(err);
+
                 nome = videoInfo.title;
                 dadosMusica = { idVideo: idVideo, name: nome, url: url, emocao: "", userFK: req.body.userFK }
 
@@ -50,7 +53,7 @@ exports.uploadVideo = async (req, res) => {
 
 
 
-            amqp.connect('amqp://merUser:passwordMER@194.210.240.63', function (err, conn) {
+            /*amqp.connect('amqp://merUser:passwordMER@194.210.240.63', function (err, conn) {
                 conn.createChannel(function (err, ch) {
                     var q = 'musicExtraction';
                     //console.log("Conn = " + conn);
@@ -61,7 +64,7 @@ exports.uploadVideo = async (req, res) => {
                     console.log(" [x] Sent '%s'", url);
                 });
                 setTimeout(function () { conn.close(); process.exit(0) }, 500);
-            });
+            });*/
 
             serverResponse = { status: "Upload", response: {} }
             return res.send(serverResponse);
@@ -97,17 +100,17 @@ exports.getVideoPesquisa = async (req, res) => {
         var size = Object.keys(musicas).length;
         var dadosEnviar = [];
         for (let i = 0; i < size; i++) {
-
-            await fetchVideoInfo(musicas[i].idVideo).then(videoInfo => {
-                const autor = videoInfo.owner;
-                const dataPublicacao = videoInfo.datePublished;
-                const numViews = videoInfo.views;
-                const numDislikes = videoInfo.dislikeCount;
-                const numLikes = videoInfo.likeCount;
-                const numComentarios = videoInfo.commentCount;
+            await ytdl.getInfo(musicas[i].idVideo).then(function (videoInfo, err) {
+                if (err) throw new Error(err);
+                
+                const autor = videoInfo.videoDetails.name;
+                const dataPublicacao = videoInfo.videoDetails.publishDate;
+                const numViews = videoInfo.videoDetails.viewCount;
+                const numDislikes = videoInfo.videoDetails.dislikes;
+                const numLikes = videoInfo.videoDetails.likes;
                 dadosEnviar[i] = {
                     id: musicas[i].id, idVideo: musicas[i].idVideo, nome: musicas[i].name, url: musicas[i].url, autor: autor, dataPublicacao: dataPublicacao,
-                    numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, numComentarios: numComentarios, emocao: musicas[i].emocao
+                    numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, emocao: musicas[i].emocao
                 }
             });
         }
@@ -143,17 +146,19 @@ exports.getLastVideos = async (req, res) => {
             var size = Object.keys(musicas).length;
             var dadosEnviar = [];
             for (let i = 0; i < size; i++) {
-                await fetchVideoInfo(musicas[i].idVideo).then(videoInfo => {
-                    const autor = videoInfo.owner;
-                    const dataPublicacao = videoInfo.datePublished;
-                    const numDislikes = videoInfo.dislikeCount;
-                    const numViews = videoInfo.views;
-                    const numLikes = videoInfo.likeCount;
-                    const numComentarios = videoInfo.commentCount;
+                await ytdl.getInfo(musicas[i].idVideo).then(function (videoInfo, err) {
+                    if (err) throw new Error(err);
+
+                    const autor = videoInfo.videoDetails.name;
+                    const dataPublicacao = videoInfo.videoDetails.publishDate;
+                    const numViews = videoInfo.videoDetails.viewCount;
+                    const numDislikes = videoInfo.videoDetails.dislikes;
+                    const numLikes = videoInfo.videoDetails.likes;
                     dadosEnviar[i] = {
-                        numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, numComentarios: numComentarios, emocao: musicas[i].emocao,
+                        numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, emocao: musicas[i].emocao,
                         id: musicas[i].id, idVideo: musicas[i].idVideo, nome: musicas[i].name, url: musicas[i].url, autor: autor, dataPublicacao: dataPublicacao,
                     }
+
                 });
             }
             serverResponse = { status: "Últimas músicas classificadas", response: dadosEnviar }
@@ -168,16 +173,16 @@ exports.getLastVideos = async (req, res) => {
                 var size = Object.keys(musicas).length;
                 var dadosEnviar = [];
                 for (let i = 0; i < size; i++) {
-                    await fetchVideoInfo(musicas[i].idVideo).then(videoInfo => {
-                        const autor = videoInfo.owner;
-                        const dataPublicacao = videoInfo.datePublished;
-                        const numViews = videoInfo.views;
-                        const numDislikes = videoInfo.dislikeCount;
-                        const numLikes = videoInfo.likeCount;
-                        const numComentarios = videoInfo.commentCount;
+                    await ytdl.getInfo(musicas[i].idVideo).then(function (videoInfo, err) {
+                        if (err) throw new Error(err);
+                        const autor = videoInfo.videoDetails.name;
+                        const dataPublicacao = videoInfo.videoDetails.publishDate;
+                        const numViews = videoInfo.videoDetails.viewCount;
+                        const numDislikes = videoInfo.videoDetails.dislikes;
+                        const numLikes = videoInfo.videoDetails.likes;
                         dadosEnviar[i] = {
                             id: musicas[i].id, idVideo: musicas[i].idVideo, nome: musicas[i].name, url: musicas[i].url, autor: autor, dataPublicacao: dataPublicacao,
-                            numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, numComentarios: numComentarios, emocao: musicas[i].emocao
+                            numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, emocao: musicas[i].emocao
                         }
                     });
                 }
@@ -196,6 +201,7 @@ exports.deleteMusic = async (req, res) => {
     var musicaDelete;
     //musica a apagar
     var musicaApagar = req.params.idVideo;
+    console.log(req.params)
     var token = req.headers['x-access-token'];
     //se o token não existir
     if (!token) {
@@ -207,6 +213,7 @@ exports.deleteMusic = async (req, res) => {
         //validar
         jwt.verify(token, 'secret');
         //apagar música
+        
         await musicsService.deleteMusic(musicaApagar).then(mus => musicaDelete = mus).catch(err => console.log(err));
         if (musicaDelete != 0) {
             serverResponse = { status: "Deleted", response: musicaDelete }
@@ -266,42 +273,42 @@ exports.getMusicProcessing = async (req, res) => {
     let serverResponse = { status: "Não existe músicas em processamento", response: {} }
     var musicasProcess;
 
-    
-    
-    
-        await musicsService.getMusicProcessing().then(mus => musicasProcess=mus).catch(err => console.log(err))
-        if (musicasProcess!== undefined) {
-            serverResponse = { status: "Músicas em processamento", response: musicasProcess }
-        }
-        return res.send(serverResponse);
+
+
+
+    await musicsService.getMusicProcessing().then(mus => musicasProcess = mus).catch(err => console.log(err))
+    if (musicasProcess !== undefined) {
+        serverResponse = { status: "Músicas em processamento", response: musicasProcess }
+    }
+    return res.send(serverResponse);
 }
 
 exports.getMusicByEmotion = async (req, res) => {
     let serverResponse = { status: "Não existe músicas com esta emoção", response: {} }
     var musicasEmocao;
     var emocao = req.params.emocao;
-        await musicsService.getMusicByEmotion(emocao).then(mus => musicasEmocao=mus).catch(err => console.log(err))
-        if (musicasEmocao.length > 0) {
-            var size = Object.keys(musicasEmocao).length;
-            var dadosEnviar = [];
-            for (let i = 0; i < size; i++) {
-                await fetchVideoInfo(musicasEmocao[i].idVideo).then(videoInfo => {
-                    const autor = videoInfo.owner;
-                    const dataPublicacao = videoInfo.datePublished;
-                    const numDislikes = videoInfo.dislikeCount;
-                    const numViews = videoInfo.views;
-                    const numLikes = videoInfo.likeCount;
-                    const numComentarios = videoInfo.commentCount;
-                    dadosEnviar[i] = {
-                        numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, numComentarios: numComentarios, emocao: musicasEmocao[i].emocao,
-                        id: musicasEmocao[i].id, idVideo: musicasEmocao[i].idVideo, nome: musicasEmocao[i].name, url: musicasEmocao[i].url, autor: autor, dataPublicacao: dataPublicacao,
-                    }
-                });
-            }
-            serverResponse = { status: "Últimas músicas classificadas", response: dadosEnviar }
+    await musicsService.getMusicByEmotion(emocao).then(mus => musicasEmocao = mus).catch(err => console.log(err))
+    if (musicasEmocao.length > 0) {
+        var size = Object.keys(musicasEmocao).length;
+        var dadosEnviar = [];
+        for (let i = 0; i < size; i++) {
+            await ytdl.getInfo(musicasEmocao[i].idVideo).then(function (videoInfo, err) {
+                if (err) throw new Error(err);
+                const autor = videoInfo.videoDetails.name;
+                const dataPublicacao = videoInfo.videoDetails.publishDate;
+                const numViews = videoInfo.videoDetails.viewCount;
+                const numDislikes = videoInfo.videoDetails.dislikes;
+                const numLikes = videoInfo.videoDetails.likes;
+                dadosEnviar[i] = {
+                    numViews: numViews, numDislikes: numDislikes, numLikes: numLikes, emocao: musicasEmocao[i].emocao,
+                    id: musicasEmocao[i].id, idVideo: musicasEmocao[i].idVideo, nome: musicasEmocao[i].name, url: musicasEmocao[i].url, autor: autor, dataPublicacao: dataPublicacao,
+                }
+            });
         }
-        return res.send(serverResponse);
+        serverResponse = { status: "Últimas músicas classificadas", response: dadosEnviar }
+    }
+    return res.send(serverResponse);
 
-    
+
 
 }

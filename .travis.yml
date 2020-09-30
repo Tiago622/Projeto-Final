@@ -19,6 +19,7 @@ env:
 before_script:
   - mysql -e "create database mer"
   - mysql -uroot -e "grant all privileges on mer.* to 'user'@'%' identified by '123qwe'"
+  - npx sequelize-cli db:migrate
   - npx sequelize-cli db:seed:all  
   
 script:

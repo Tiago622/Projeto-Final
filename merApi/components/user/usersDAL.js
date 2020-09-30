@@ -1,5 +1,6 @@
 
-var models = require('../models')
+// var models = require('../models')
+var models = require('../../models/index');
 
 exports.createUser = async (user) => {
     await models.User.create(user);

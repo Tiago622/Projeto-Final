@@ -1,35 +1,27 @@
-const fetch = require('node-fetch');
+const app = require('../index');
+const supertest = require('supertest')
+const request = supertest(app);
 
-test('Erros na introdução do username ou da password', async () => {
-  const loginData = {
-    username: "usernameErrado",
-    hashPassword: "passwordErrada"
-  };
-  var status;
 
-  await fetch('http://localhost:8000/auth/login', {
-    method: 'post',
-    body: JSON.stringify(loginData),
-    headers: { 'Content-Type': 'application/json' },
-  })
-    .then(res => res.json())
-    .then(json => status = json.status);
-  expect(status).toBe("Username ou password errados")
-});
+describe('Login Test', () => {
+  it('Erros nas credenciais de autenticação', async () => {
+    const res = await request.post('/auth/login')
+      .send({
+        username: "usernameErrado",
+        hashPassword: "passwordErrada"
+      });
+    expect(res.body.status).toBe("Username ou password errados");
 
-test('Login a um utilizador que exista', async () => {
-  const loginData = {
-    username: "admin",
-    hashPassword: "admin"
-  };
-  var status;
+    
+  });
 
-  await fetch('http://localhost:8000/auth/login', {
-    method: 'post',
-    body: JSON.stringify(loginData),
-    headers: { 'Content-Type': 'application/json' },
-  })
-    .then(res => res.json())
-    .then(json => status = json.status);
-  expect(status).toBe("Autenticado")
+  it('Autenticação Correta', async () => {
+    const res = await request.post('/auth/login')
+      .send({
+        username: "admin",
+        hashPassword: "123Qwe.."
+      });
+    expect(res.body.status).toBe("Autenticado");
+    
+  });
 });

@@ -1,4 +1,5 @@
-var models = require('../models/index');
+// var models = require('../models/index');
+var models = require('../../models/index');
 
 exports.createFeedback = async (feedback) => {
     await models.Feedback.create(feedback);

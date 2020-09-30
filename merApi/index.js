@@ -1,7 +1,6 @@
-var models = require ('./components/models');
 
 var swaggerUi = require('swagger-ui-express')
-var swaggerDocument = require( './swagger/swagger.json');
+var swaggerDocument = require('./swagger/swagger.json');
 var expressValidator = require('express-validator');
 
 var express = require('express'),
@@ -15,7 +14,7 @@ app.use(cors());
 app.use(expressValidator());
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
-app.use('/api/doc',swaggerUi.serve,swaggerUi.setup(swaggerDocument));
+app.use('/api/doc', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*")
@@ -34,12 +33,16 @@ require('./components/listasMusicas/index')(app)
 
 var port = process.env.PORT || 8000;
 
-models.sequelize.sync({}).then(() => {
-    app.listen(port, () => {
-        console.log('\x1b[32m%s %d\x1b[0m.', 'Server HTTP listening on port', port)
-    })  });
+// Sync all defined models to the DB
+//  models.sequelize.sync(/*{logging: false}*/).then(() => {
+app.listen(port, () => {
+    console.log('\x1b[32m%s %d\x1b[0m.', 'Server HTTP listening on port', port)
+})
+// });
 
 
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/index.html')
 })
+
+module.exports = app;

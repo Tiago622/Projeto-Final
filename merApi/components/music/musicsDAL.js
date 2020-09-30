@@ -1,4 +1,6 @@
-var models = require('../models/index');
+// var models = require('../models/index');
+var models = require('../../models/index');
+
 var Sequelize = require('sequelize');
 const Op = Sequelize.Op;   
 
@@ -8,7 +10,7 @@ exports.uploadVideo = async (musica) => {
 
 exports.getVideo = async (idVideo) => {
     var musica;
-    await models.Music.findOne({ where: { idVideo: idVideo },include:[models.Feedback],include:[models.ListasMusicas]}).then(music => musica = music).catch(err => console.log(err))
+    await models.Music.findOne({ where: { idVideo: idVideo },include:[models.Feedback],include:[models.ListaMusicas]}).then(music => musica = music).catch(err => console.log(err))
     return musica;
 }
 

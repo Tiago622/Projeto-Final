@@ -29,10 +29,11 @@ cd merWeb
 npm start
 ```
 
-## Executar a seed (Utilizador)
+## Executar a migrations e seed
 
 ```bash
 cd merApi
+npx sequelize-cli db:migrate
 npx sequelize-cli db:seed:all
 ```
 
@@ -41,4 +42,11 @@ npx sequelize-cli db:seed:all
 ```bash
 cd merApi
 npm test
+```
+
+## Autenticação de utilizador da seed
+
+```bash
+username: admin
+password: 123Qwe..
 ```

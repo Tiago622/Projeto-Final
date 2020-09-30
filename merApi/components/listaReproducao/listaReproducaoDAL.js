@@ -1,4 +1,5 @@
-var models = require('../models/index');
+// var models = require('../models/index');
+var models = require('../../models/index');
 
 exports.createList = async (lista) => {
     var listaR;
@@ -20,6 +21,6 @@ exports.deleteList = async (listID) =>{
 
   exports.getListUser = async (userFK) =>{
     var listaUser;
-    await models.ListaRepro.findAll({where:{userFK:userFK},include:[models.ListasMusicas]}).then(usr => listaUser = usr).catch(err => console.log(err));
+    await models.ListaRepro.findAll({where:{userFK:userFK},include:[models.ListaMusicas]}).then(usr => listaUser = usr).catch(err => console.log(err));
     return listaUser;
   }
